@@ -132,6 +132,12 @@ class PacketRelayManager(private val myPeerID: String) {
      * Determine if we should relay this packet based on type and network conditions
      */
     private fun shouldRelayPacket(packet: BitchatPacket, fromPeerID: String): Boolean {
+        // ALWAYS relay emergency packets
+        if (packet.type == MessageType.EMERGENCY.value) {
+            Log.i(TAG, "🚨 Emergency packet detected, ALWAYS relaying")
+            return true
+        }
+
         // Always relay if TTL is high enough (indicates important message)
         if (packet.ttl >= 4u) {
             Log.d(TAG, "High TTL (${packet.ttl}), relaying")

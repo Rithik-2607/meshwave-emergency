@@ -521,6 +521,10 @@ class BluetoothMeshService(private val context: Context) {
                     }
                 } catch (_: Exception) { }
             }
+
+            override fun handleEmergency(routed: RoutedPacket) {
+                serviceScope.launch { messageHandler.handleEmergency(routed) }
+            }
             
             override fun handleLeave(routed: RoutedPacket) {
                 serviceScope.launch { messageHandler.handleLeave(routed) }
@@ -537,6 +541,13 @@ class BluetoothMeshService(private val context: Context) {
                 return fragmentManager.handleFragment(packet)
             }
             
+            override fun handleRequestSync(routed: RoutedPacket) {
+                // Decode request and respond with missing packets
+                val fromPeer = routed.peerID ?: return
+                val req = RequestSyncPacket.decode(routed.packet.payload) ?: return
+                gossipSyncManager.handleRequestSync(fromPeer, req)
+            }
+            
             override fun sendAnnouncementToPeer(peerID: String) {
                 this@BluetoothMeshService.sendAnnouncementToPeer(peerID)
             }
@@ -551,13 +562,6 @@ class BluetoothMeshService(private val context: Context) {
 
             override fun sendToPeer(peerID: String, routed: RoutedPacket): Boolean {
                 return connectionManager.sendToPeer(peerID, routed)
-            }
-            
-            override fun handleRequestSync(routed: RoutedPacket) {
-                // Decode request and respond with missing packets
-                val fromPeer = routed.peerID ?: return
-                val req = RequestSyncPacket.decode(routed.packet.payload) ?: return
-                gossipSyncManager.handleRequestSync(fromPeer, req)
             }
         }
         
@@ -715,6 +719,36 @@ class BluetoothMeshService(private val context: Context) {
         return reusable
     }
     
+    /**
+     * Send emergency panic broadcast to all peers
+     */
+    fun sendEmergencyBroadcast() {
+        serviceScope.launch {
+            val nickname = try { com.bitchat.android.services.NicknameProvider.getNickname(context, myPeerID) } catch (_: Exception) { myPeerID }
+            val content = "EMERGENCY: $nickname needs help!"
+            
+            val packet = BitchatPacket(
+                version = 1u,
+                type = MessageType.EMERGENCY.value,
+                senderID = hexStringToByteArray(myPeerID),
+                recipientID = SpecialRecipients.BROADCAST,
+                timestamp = System.currentTimeMillis().toULong(),
+                payload = content.toByteArray(Charsets.UTF_8),
+                signature = null,
+                ttl = MAX_TTL
+            )
+
+            // Sign the packet before broadcasting
+            val signedPacket = signPacketBeforeBroadcast(packet)
+            connectionManager.broadcastPacket(RoutedPacket(signedPacket))
+            
+            // Track our own broadcast message for sync
+            try { gossipSyncManager.onPublicPacketSeen(signedPacket) } catch (_: Exception) { }
+            
+            Log.i(TAG, "🚨 Emergency broadcast sent!")
+        }
+    }
+
     /**
      * Send public message
      */
@@ -883,13 +917,13 @@ class BluetoothMeshService(private val context: Context) {
                     }
                     
                     // Create message payload with NoisePayloadType prefix: [type byte] + [TLV data]
-                    val messagePayload = com.bitchat.android.model.NoisePayload(
+                    val noisePayload = com.bitchat.android.model.NoisePayload(
                         type = com.bitchat.android.model.NoisePayloadType.PRIVATE_MESSAGE,
                         data = tlvData
                     )
                     
                     // Encrypt the payload
-                    val encrypted = encryptionService.encrypt(messagePayload.encode(), recipientPeerID)
+                    val encrypted = encryptionService.encrypt(noisePayload.encode(), recipientPeerID)
                     
                     // Create NOISE_ENCRYPTED packet exactly like iOS
                     val packet = BitchatPacket(

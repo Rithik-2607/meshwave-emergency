@@ -12,7 +12,8 @@ enum class BitchatMessageType : Parcelable {
     Message,
     Audio,
     Image,
-    File
+    File,
+    Emergency
 }
 
 /**
@@ -354,5 +355,3 @@ data class BitchatMessage(
         return result
     }
 }
-
-

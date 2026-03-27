@@ -16,6 +16,7 @@ import androidx.core.app.NotificationManagerCompat
 import com.bitchat.android.MainActivity
 import com.bitchat.android.R
 import com.bitchat.android.mesh.BluetoothMeshService
+import com.bitchat.android.util.ShakeDetector
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -119,6 +120,8 @@ class MeshForegroundService : Service() {
     private val scope = CoroutineScope(Dispatchers.Default + serviceJob)
     private var isInForeground: Boolean = false
     private var isShuttingDown: Boolean = false
+    
+    private var shakeDetector: ShakeDetector? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -134,6 +137,13 @@ class MeshForegroundService : Service() {
             Log.i("MeshForegroundService", "Created new BluetoothMeshService via holder")
             MeshServiceHolder.attach(created)
         }
+        
+        // Initialize Shake Detector for Emergency feature
+        shakeDetector = ShakeDetector {
+            Log.i("MeshForegroundService", "Emergency shake detected!")
+            meshService?.sendEmergencyBroadcast()
+        }
+        shakeDetector?.start(this)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -360,6 +370,7 @@ class MeshForegroundService : Service() {
     }
 
     override fun onDestroy() {
+        shakeDetector?.stop()
         updateJob?.cancel()
         updateJob = null
         // Cancel the service coroutine scope to prevent leaks

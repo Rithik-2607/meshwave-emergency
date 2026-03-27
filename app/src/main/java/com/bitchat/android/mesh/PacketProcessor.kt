@@ -146,6 +146,7 @@ class PacketProcessor(private val myPeerID: String) {
         when (messageType) {
             MessageType.ANNOUNCE -> handleAnnounce(routed)
             MessageType.MESSAGE -> handleMessage(routed)
+            MessageType.EMERGENCY -> handleEmergency(routed)
             MessageType.LEAVE -> handleLeave(routed)
             MessageType.FRAGMENT -> handleFragment(routed)
             MessageType.REQUEST_SYNC -> handleRequestSync(routed)
@@ -210,6 +211,15 @@ class PacketProcessor(private val myPeerID: String) {
         val peerID = routed.peerID ?: "unknown"
         Log.d(TAG, "Processing message from ${formatPeerForLog(peerID)}")
         delegate?.handleMessage(routed)
+    }
+
+    /**
+     * Handle emergency message
+     */
+    private suspend fun handleEmergency(routed: RoutedPacket) {
+        val peerID = routed.peerID ?: "unknown"
+        Log.d(TAG, "Processing emergency from ${formatPeerForLog(peerID)}")
+        delegate?.handleEmergency(routed)
     }
     
     /**
@@ -316,6 +326,7 @@ interface PacketProcessorDelegate {
     fun handleNoiseEncrypted(routed: RoutedPacket)
     fun handleAnnounce(routed: RoutedPacket)
     fun handleMessage(routed: RoutedPacket)
+    fun handleEmergency(routed: RoutedPacket)
     fun handleLeave(routed: RoutedPacket)
     fun handleFragment(packet: BitchatPacket): BitchatPacket?
     fun handleRequestSync(routed: RoutedPacket)

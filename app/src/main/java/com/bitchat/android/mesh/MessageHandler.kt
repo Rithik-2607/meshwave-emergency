@@ -481,7 +481,82 @@ class MessageHandler(private val myPeerID: String, private val appContext: andro
         }
     }
 
+    /**
+     * Handle emergency broadcast
+     */
+    suspend fun handleEmergency(routed: RoutedPacket) {
+        val packet = routed.packet
+        val peerID = routed.peerID ?: "unknown"
+        if (peerID == myPeerID) return
+        
+        try {
+            val content = String(packet.payload, Charsets.UTF_8)
+            val senderNickname = delegate?.getPeerNickname(peerID) ?: "Unknown Peer"
+            
+            Log.i(TAG, "🚨 Received emergency from $senderNickname: $content")
+            
+            val message = BitchatMessage(
+                id = "emergency-" + System.currentTimeMillis(),
+                sender = "🚨 EMERGENCY",
+                content = content,
+                senderPeerID = peerID,
+                timestamp = Date(packet.timestamp.toLong()),
+                type = BitchatMessageType.Message
+            )
+            
+            delegate?.onMessageReceived(message)
+            
+            // Show a high-priority notification if possible
+            showEmergencyNotification(senderNickname, content)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error processing emergency broadcast: ${e.message}")
+        }
+    }
     
+    private fun showEmergencyNotification(senderNickname: String, content: String) {
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= 33) {
+                if (androidx.core.content.ContextCompat.checkSelfPermission(appContext, android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                    Log.w(TAG, "Cannot show emergency notification: Permission not granted")
+                    return
+                }
+            }
+            
+            val notificationManager = androidx.core.app.NotificationManagerCompat.from(appContext)
+            val channelId = "emergency_alerts"
+            
+            val channel = android.app.NotificationChannel(
+                channelId,
+                "Emergency Alerts",
+                android.app.NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Urgent emergency alerts from nearby peers"
+                enableVibration(true)
+                vibrationPattern = longArrayOf(0, 500, 200, 500)
+            }
+            val manager = appContext.getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+            manager.createNotificationChannel(channel)
+            
+            val notification = androidx.core.app.NotificationCompat.Builder(appContext, channelId)
+                .setSmallIcon(android.R.drawable.ic_dialog_alert)
+                .setContentTitle("🚨 EMERGENCY ALERT")
+                .setContentText("$senderNickname needs help!")
+                .setStyle(androidx.core.app.NotificationCompat.BigTextStyle().bigText(content))
+                .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
+                .setCategory(androidx.core.app.NotificationCompat.CATEGORY_ALARM)
+                .setAutoCancel(true)
+                .build()
+            
+            try {
+                notificationManager.notify(Random.nextInt(), notification)
+            } catch (e: SecurityException) {
+                Log.e(TAG, "SecurityException showing emergency notification: ${e.message}")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to show emergency notification: ${e.message}")
+        }
+    }
     
     /**
      * Handle leave message

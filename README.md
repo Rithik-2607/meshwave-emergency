@@ -1,68 +1,185 @@
-Meshwave - Decentralized Emergency Mesh Network
-Meshwave is a privacy-focused, off-grid communication tool designed for emergency situations where internet and cellular networks are unavailable. It uses Bluetooth Low Energy (BLE) and Tor (Arti) to create a resilient peer-to-peer mesh network.
+# 📡 Meshwave – Decentralized Emergency Mesh Network
 
-Key Emergency Features:
+A privacy-focused, off-grid emergency communication system that enables peer-to-peer messaging when internet and cellular networks are unavailable.
 
-1. "Ok Mesh" Hands-Free Voice Messaging
+Meshwave uses **Bluetooth Low Energy (BLE), offline AI, end-to-end encryption, and decentralized mesh networking** to provide resilient communication during emergencies.
 
-Designed for "unavoidable circumstances" where a user cannot manually operate their phone (e.g., trapped, injured, or busy hands).
-• Wake Word Detection: Simply saying "Ok Mesh" activates the feature automatically.
-• 10-Second Window: The app listens for 10 seconds of speech immediately after the wake word.
-• Offline AI Transcription: Uses an embedded OpenAI Whisper Tiny engine to convert voice to text locally.
-• Instant Broadcast: The resulting text is automatically broadcasted to the entire mesh network.
-• Zero-Touch: No buttons need to be pressed to alert nearby responders.
+## 📌 Project Overview
 
-2. Shake2Rescue (Handshake Emergency)
+Meshwave allows nearby devices to communicate directly without relying on centralized servers or cellular infrastructure.
 
-A physical-gesture-based SOS system for rapid distress signaling.
-• High-G Detection: By shaking the device vigorously, the Shake2Rescue module is triggered.
-• Emergency Handshake: The app instantly broadcasts a high-priority "Emergency Handshake" packet to all nodes within Bluetooth range.
-• Responder Priority: These messages are flagged in the mesh to ensure they bypass standard congestion and reach every available peer.
+The system provides two emergency communication mechanisms:
 
-Features
+* 🎙️ **Ok Mesh** – Hands-free voice-to-text emergency messaging
+* 📳 **Shake2Rescue** – Gesture-based SOS broadcasting
 
-• Decentralized Messaging: No servers, no central authority.
-• Offline Voice-to-Text: Hands-free emergency communication via "Ok Mesh".
-• Emergency Shake: Shake the device to send an SOS broadcast with location.
-• End-to-End Encryption: Powered by the Noise Protocol Framework.
-• Anonymity: Optional routing through the Tor (Arti) network.
-• Adaptive Power Management: Optimizes BLE scanning to preserve battery during disasters.
+## 🏗️ System Architecture
 
-Requirements & Installation
+```mermaid
+flowchart LR
+    A[📱 Android Device] --> B[MeshForegroundService]
 
-PermissionsTo function correctly, especially for the Voice-to-Text feature, the following permissions are required:
-• Microphone: For wake-word detection and voice recording.
-• Nearby Devices (Bluetooth): For mesh networking.
-• Post Notifications: To keep the Mesh Service alive in the background.
+    B --> C[BLE Mesh Service]
+    B --> D[Shake Detector]
+    B --> E[Wake Word Detector]
 
-Local AI Models
+    E --> F[Speech-to-Text]
+    F --> G[Whisper Tiny TFLite]
+    G --> C
 
-Because this app is 100% offline, you must manually add the AI model files to the project before building:
-1. Download the whisper-tiny.tflite model.
-2. Place the file in: app/src/main/assets/models/whisper-tiny.tflite.
-3. (Optional) For wake-word detection, ensure the .pv or .bin model for "Ok Mesh" is in the assets folder.
+    D --> H[Emergency SOS]
+    H --> C
 
-Architecture
+    C --> I[Encrypted BLE Mesh]
+    I --> J[📱 Nearby Nodes]
+    J --> K[📱 Responders]
 
-The app follows Clean Architecture with a focus on background stability:
-• MeshForegroundService: The heart of the app. It manages BLE, the Shake Detector, and the new WakeWord/STT Managers.
-• SpeechToTextManager: Handles the 10-second recording buffer and interfaces with the Whisper Tiny TFLite interpreter.
-• BluetoothMeshService: Handles the logic for broadcasting the transcribed strings to the network.
+    C -.-> L[Tor / Arti]
+```
 
-Development & Setup
+## ⚙️ Technologies Used
 
-1. Clone the repo: Shell Script
-	git clone https://github.com/your-repo/meshwave-android.git
-2. Build the project: Use Android Studio (Ladybug or newer) with Kotlin 1.9+.
-3. Run: Install on a physical device (BLE features and Microphone detection do not work accurately on emulators).
+### 📱 Android
 
-Security & Privacy
+* Kotlin
+* Android SDK
+* Android Studio
+* Foreground Services
 
-• Local Processing: Voice data never leaves the device. The conversion from voice to text happens entirely in the        app's memory.
-• Zero Metadata: We do not track who sends voice messages; only the encrypted text is shared across the mesh.
+### 🤖 AI / Speech
 
-License
+* Whisper Tiny
+* TensorFlow Lite
+* Offline Speech-to-Text
+* Wake Word Detection
 
-This project is licensed under the MIT License. See LICENSE for details.
+### 📡 Networking
 
-Note: This project is intended for emergency and educational use. Always ensure you have a backup communication method in life-threatening situations.
+* Bluetooth Low Energy (BLE)
+* Peer-to-Peer Mesh Networking
+* Tor / Arti
+
+### 🔐 Security
+
+* Noise Protocol Framework
+* End-to-End Encryption
+
+## 🚨 Key Features
+
+### 🎙️ Ok Mesh – Hands-Free Messaging
+
+1. User says **"Ok Mesh"**.
+2. The wake-word detector activates.
+3. The app records speech for **10 seconds**.
+4. Whisper Tiny converts speech to text locally.
+5. The encrypted message is broadcast through the BLE mesh.
+
+### 📳 Shake2Rescue – Emergency SOS
+
+1. The device detects vigorous shaking.
+2. Shake detection triggers an emergency handshake.
+3. A high-priority SOS packet is generated.
+4. The packet is broadcast to nearby mesh nodes.
+5. Mesh nodes relay the emergency message to available responders.
+
+## 🔄 System Workflow
+
+```text
+User
+ │
+ ├── "Ok Mesh"
+ │      ↓
+ │  Voice Capture
+ │      ↓
+ │  Whisper Tiny
+ │      ↓
+ │  Text Message
+ │
+ └── Shake Device
+        ↓
+    Emergency SOS
+        │
+        ▼
+   Encryption
+        │
+        ▼
+   BLE Mesh Network
+        │
+        ▼
+ Nearby Mesh Nodes
+        │
+        ▼
+   Responders
+```
+
+## 🔐 Security & Privacy
+
+* 🔒 End-to-end encryption using the **Noise Protocol Framework**
+* 🤖 Voice processing performed locally on the device
+* 🌐 Optional anonymity using **Tor / Arti**
+* 🏢 No centralized communication server
+* 🔐 Only encrypted text is shared across the mesh
+
+## 📁 Project Structure
+
+```text
+meshwave-android/
+│
+├── app/
+│   └── src/main/
+│       ├── assets/
+│       │   └── models/
+│       │       └── whisper-tiny.tflite
+│       │
+│       ├── java/
+│       ├── res/
+│       └── AndroidManifest.xml
+│
+├── docs/
+├── README.md
+└── LICENSE
+```
+
+## 🛠️ Setup
+
+### Clone the Repository
+
+```bash
+git clone https://github.com/your-repo/meshwave-android.git
+cd meshwave-android
+```
+
+Open the project in **Android Studio** and add the Whisper Tiny model to:
+
+```text
+app/src/main/assets/models/whisper-tiny.tflite
+```
+
+Build and install the application on a **physical Android device** for accurate BLE, microphone, and sensor testing.
+
+## 🎯 Use Cases
+
+* 🌪️ Natural disasters
+* 📡 Network outages
+* 🏔️ Remote-area emergencies
+* 🚨 Disaster response
+* 🧭 Outdoor emergency situations
+
+## 🚀 Future Enhancements
+
+* Offline emergency maps
+* Improved multi-hop routing
+* Better battery optimization
+* Emergency responder mode
+* Enhanced location sharing
+* Improved offline speech recognition
+
+## 📄 License
+
+This project is licensed under the **MIT License**.
+
+See the [`LICENSE`](LICENSE) file for details.
+
+## ⚠️ Disclaimer
+
+Meshwave is intended for **educational, research, and experimental purposes**. It should not be considered a replacement for established emergency communication services. Always maintain a backup communication method for critical situations.
